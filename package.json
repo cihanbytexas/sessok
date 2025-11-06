@@ -1,8 +1,19 @@
 {
-  "name": "texastrvoice",
+  "name": "discord-voice-api",
   "version": "1.0.0",
-  "type": "module",
+  "description": "Vercel API: Discord botu ses kanalına sokma",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "start": "node index.js"
+  },
   "dependencies": {
-    "node-fetch": "^3.3.2"
-  }
+    "discord.js": "^14.14.0",
+    "@discordjs/voice": "^0.15.0",
+    "node-fetch": "^3.4.1"
+  },
+  "engines": {
+    "node": "18.x"
+  },
+  "type": "module"
 }
