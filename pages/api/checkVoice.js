@@ -1,55 +1,44 @@
-import fetch from "node-fetch";
+// pages/api/voiceCheck.js
+import { Client, GatewayIntentBits } from "discord.js";
 
 export default async function handler(req, res) {
-  // Sadece POST izinli
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
-  const { guild_id, user_id, bot_token } = req.body;
-
-  // Eksik bilgi kontrolü
-  if (!guild_id || !user_id || !bot_token) {
-    return res.status(400).json({
-      error: "Eksik alanlar! Gerekli: guild_id, user_id, bot_token",
-    });
-  }
-
   try {
-    // Discord API'den kullanıcı bilgilerini çek
-    const response = await fetch(
-      `https://discord.com/api/v10/guilds/${guild_id}/members/${user_id}`,
-      {
-        headers: {
-          Authorization: `Bot ${bot_token}`,
-        },
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      return res.status(500).json({
-        error: "Discord API hatası",
-        details: data,
-      });
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "Method not allowed. Use POST." });
     }
 
-    // Kullanıcı ses kanalında mı kontrol et
-    const voiceChannelId = data?.voice?.channel_id;
+    const { user_id, guild_id, token } = req.body;
 
-    if (voiceChannelId) {
-      return res.status(200).json({
-        durum: "✅ Kullanıcı bir ses kanalında!",
-        channel_id: voiceChannelId,
-      });
-    } else {
-      return res.status(200).json({
-        durum: "❌ Kullanıcı ses kanalında değil!",
-      });
+    if (!user_id || !guild_id || !token) {
+      return res.status(400).json({ error: "Eksik alanlar! user_id, guild_id ve token gerekli." });
     }
+
+    // Discord bot client
+    const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates] });
+
+    await client.login(token);
+
+    const guild = await client.guilds.fetch(guild_id);
+    if (!guild) return res.status(404).json({ error: "Guild bulunamadı." });
+
+    const member = await guild.members.fetch(user_id).catch(() => null);
+    if (!member) return res.status(404).json({ error: "Kullanıcı bulunamadı." });
+
+    const inVoiceChannel = member.voice.channel ? true : false;
+
+    await client.destroy();
+
+    return res.status(200).json({
+      user_id,
+      guild_id,
+      status: inVoiceChannel ? "SES KANALINDA" : "SES KANALINDA DEĞİLSİNİZ"
+    });
+
   } catch (err) {
-    console.error("Sunucu hatası:", err);
-    return res.status(500).json({ error: "Sunucu hatası" });
+    console.error("API HATASI:", err);
+    return res.status(500).json({
+      error: "Sunucu hatası",
+      details: err.message || err
+    });
   }
 }
